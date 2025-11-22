@@ -32,10 +32,8 @@ import { Database, DatabaseType } from 'sap-database';
 ### Exemplo Básico
 
 ```typescript
-const db = new Database();
-
-// Conectar ao banco de dados
-await db.connect({
+// Criar instância da Database com os parâmetros de conexão
+const db = new Database({
   server: 'localhost:1433',
   database: 'meu_banco',
   username: 'usuario',
@@ -47,6 +45,9 @@ await db.connect({
     min: 5
   }
 });
+
+// Conectar ao banco de dados
+await db.connect();
 
 // Executar uma query
 const resultados = await db.executeQuery(
@@ -71,11 +72,11 @@ enum DatabaseType {
 }
 ```
 
-### Métodos da Classe Database
+### Construtor
 
-#### `connect(params: DatabaseConnectionParams): Promise<void>`
+#### `new Database(params: DatabaseConnectionParams)`
 
-Conecta ao banco de dados usando os parâmetros fornecidos.
+Cria uma nova instância da classe Database com os parâmetros de conexão.
 
 **Parâmetros:**
 - `server`: Endereço do servidor (pode incluir porta no formato `host:port`)
@@ -85,6 +86,12 @@ Conecta ao banco de dados usando os parâmetros fornecidos.
 - `databaseType`: Tipo de banco de dados (`DatabaseType` ou string)
 - `timeout`: Timeout em milissegundos (opcional, padrão: 600000)
 - `poolSettings`: Configurações adicionais do pool de conexões (opcional)
+
+### Métodos da Classe Database
+
+#### `connect(): Promise<void>`
+
+Conecta ao banco de dados usando os parâmetros fornecidos no construtor.
 
 #### `executeQuery(query: string, parameters?: unknown[]): Promise<QueryResult>`
 
@@ -115,40 +122,40 @@ Desconecta do banco de dados e fecha todas as conexões.
 #### SAP HANA
 
 ```typescript
-const db = new Database();
-await db.connect({
+const db = new Database({
   server: 'hana-server:30015',
   database: 'MEU_SCHEMA',
   username: 'SYSTEM',
   password: 'senha',
   databaseType: DatabaseType.HANA
 });
+await db.connect();
 ```
 
 #### Microsoft SQL Server
 
 ```typescript
-const db = new Database();
-await db.connect({
+const db = new Database({
   server: 'localhost:1433',
   database: 'meu_banco',
   username: 'sa',
   password: 'senha',
   databaseType: DatabaseType.MSSQL
 });
+await db.connect();
 ```
 
 #### PostgreSQL
 
 ```typescript
-const db = new Database();
-await db.connect({
+const db = new Database({
   server: 'localhost:5432',
   database: 'meu_banco',
   username: 'postgres',
   password: 'senha',
   databaseType: DatabaseType.POSTGRES
 });
+await db.connect();
 ```
 
 ## Desenvolvimento

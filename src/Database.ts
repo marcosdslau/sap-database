@@ -16,14 +16,14 @@ import {
  * Suporta HANA, MSSQL e PostgreSQL
  */
 export class Database {
-  private databaseType!: DatabaseType;
-  private isHana!: boolean;
-  private isPostgres!: boolean;
-  private database!: string;
-  private username!: string;
-  private password!: string;
-  private server!: string;
-  private timeout!: number;
+  private databaseType: DatabaseType;
+  private isHana: boolean;
+  private isPostgres: boolean;
+  private database: string;
+  private username: string;
+  private password: string;
+  private server: string;
+  private timeout: number;
   private poolSettings?: PoolSettings;
 
   // Conexões específicas por tipo de banco
@@ -33,11 +33,11 @@ export class Database {
   private pgPool?: PgPool;
 
   /**
-   * Conecta ao banco de dados usando os parâmetros fornecidos
+   * Construtor da classe Database
    * @param params Parâmetros de conexão com o banco de dados
-   * @throws {Error} Se houver erro na conexão
+   * @throws {Error} Se os parâmetros forem inválidos
    */
-  async connect(params: DatabaseConnectionParams): Promise<void> {
+  constructor(params: DatabaseConnectionParams) {
     const databaseTypeStr = params.databaseType.toUpperCase();
     
     // Validação do tipo de banco
@@ -56,7 +56,13 @@ export class Database {
     this.server = params.server;
     this.timeout = params.timeout ?? 600000;
     this.poolSettings = params.poolSettings;
+  }
 
+  /**
+   * Conecta ao banco de dados usando os parâmetros fornecidos no construtor
+   * @throws {Error} Se houver erro na conexão
+   */
+  async connect(): Promise<void> {
     try {
       if (this.isHana) {
         await this.setConnDbHana();

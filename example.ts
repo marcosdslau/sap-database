@@ -8,19 +8,20 @@
 import { Database, DatabaseType } from './src/index';
 
 async function exemplo() {
-  const db = new Database();
+  // Exemplo 1: Criar instância com parâmetros de conexão
+  const db = new Database({
+    server: 'localhost:1433',
+    database: 'meu_banco',
+    username: 'sa',
+    password: 'senha123',
+    databaseType: DatabaseType.MSSQL,
+    timeout: 600000,
+  });
 
   try {
-    // Exemplo 1: Conectar ao Microsoft SQL Server
+    // Conectar ao banco de dados
     console.log('Conectando ao banco de dados...');
-    await db.connect({
-      server: 'localhost:1433',
-      database: 'meu_banco',
-      username: 'sa',
-      password: 'senha123',
-      databaseType: DatabaseType.MSSQL,
-      timeout: 600000,
-    });
+    await db.connect();
 
     // Exemplo 2: Executar uma query simples
     console.log('Executando query...');
@@ -52,16 +53,16 @@ async function exemplo() {
 
 // Exemplo com SAP HANA
 async function exemploHana() {
-  const db = new Database();
+  const db = new Database({
+    server: 'hana-server:30015',
+    database: 'MEU_SCHEMA',
+    username: 'SYSTEM',
+    password: 'senha123',
+    databaseType: DatabaseType.HANA,
+  });
 
   try {
-    await db.connect({
-      server: 'hana-server:30015',
-      database: 'MEU_SCHEMA',
-      username: 'SYSTEM',
-      password: 'senha123',
-      databaseType: DatabaseType.HANA,
-    });
+    await db.connect();
 
     const resultados = await db.executeQuery(
       'SELECT * FROM "MEU_SCHEMA"."TABELA" WHERE ID = ?',
@@ -78,20 +79,20 @@ async function exemploHana() {
 
 // Exemplo com PostgreSQL
 async function exemploPostgres() {
-  const db = new Database();
+  const db = new Database({
+    server: 'localhost:5432',
+    database: 'meu_banco',
+    username: 'postgres',
+    password: 'senha123',
+    databaseType: DatabaseType.POSTGRES,
+    poolSettings: {
+      max: 20,
+      min: 5,
+    },
+  });
 
   try {
-    await db.connect({
-      server: 'localhost:5432',
-      database: 'meu_banco',
-      username: 'postgres',
-      password: 'senha123',
-      databaseType: DatabaseType.POSTGRES,
-      poolSettings: {
-        max: 20,
-        min: 5,
-      },
-    });
+    await db.connect();
 
     const resultados = await db.executeQuery(
       'SELECT * FROM usuarios WHERE email = $1',
