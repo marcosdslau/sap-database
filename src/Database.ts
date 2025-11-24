@@ -1,9 +1,6 @@
-import * as mssql from "mssql";
 import * as hana from "@sap/hana-client";
-import { Pool as PgPool } from "pg";
 import { createPool, Pool as GenericPool } from "generic-pool";
 import {
-  DatabaseType,
   DatabaseConnectionParams,
   PoolSettings,
   HanaClient,
@@ -12,13 +9,9 @@ import {
 } from "./types";
 
 /**
- * Classe principal para gerenciamento de conexões com bancos de dados SAP
- * Suporta HANA, MSSQL e PostgreSQL
+ * Classe principal para gerenciamento de conexões com SAP HANA
  */
 export class Database {
-  private databaseType: DatabaseType;
-  private isHana: boolean;
-  private isPostgres: boolean;
   private database: string;
   private username: string;
   private password: string;
@@ -26,31 +19,26 @@ export class Database {
   private timeout: number;
   private poolSettings?: PoolSettings;
 
-  // Conexões específicas por tipo de banco
+  // Pool de conexões HANA
   private pool?: GenericPool<HanaClient>;
-  private mssql?: mssql.ConnectionPool;
-  private mssqlConnect?: Promise<mssql.ConnectionPool>;
-  private pgPool?: PgPool;
 
   /**
    * Construtor da classe Database
-   * @param params Parâmetros de conexão com o banco de dados
+   * @param params Parâmetros de conexão com o banco de dados SAP HANA
    * @throws {Error} Se os parâmetros forem inválidos
    */
   constructor(params: DatabaseConnectionParams) {
-    const databaseTypeStr = params.databaseType.toUpperCase();
-    
-    // Validação do tipo de banco
-    if (!Object.values(DatabaseType).includes(databaseTypeStr as DatabaseType)) {
-      throw new Error(
-        `Tipo de banco de dados inválido: ${databaseTypeStr}. Tipos suportados: ${Object.values(DatabaseType).join(", ")}`
-      );
+    if (!params.server || !params.server.trim()) {
+      throw new Error("Parâmetro 'server' é obrigatório");
+    }
+    if (!params.username || !params.username.trim()) {
+      throw new Error("Parâmetro 'username' é obrigatório");
+    }
+    if (!params.password || !params.password.trim()) {
+      throw new Error("Parâmetro 'password' é obrigatório");
     }
 
-    this.databaseType = databaseTypeStr as DatabaseType;
-    this.isHana = this.databaseType === DatabaseType.HANA;
-    this.isPostgres = this.databaseType === DatabaseType.POSTGRES;
-    this.database = params.database;
+    this.database = params.database || "";
     this.username = params.username;
     this.password = params.password;
     this.server = params.server;
@@ -59,20 +47,16 @@ export class Database {
   }
 
   /**
-   * Conecta ao banco de dados usando os parâmetros fornecidos no construtor
+   * Conecta ao banco de dados SAP HANA usando os parâmetros fornecidos no construtor
    * @throws {Error} Se houver erro na conexão
    */
   async connect(): Promise<void> {
     try {
-      if (this.isHana) {
-        await this.setConnDbHana();
-      } else if (this.isPostgres) {
-        await this.setConnDbPostgres();
-      } else {
-        await this.setConnDbSql();
-      }
+      await this.setConnDbHana();
     } catch (error) {
-      throw new Error(`Erro ao conectar ao banco de dados: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Erro ao conectar ao banco de dados HANA: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -85,9 +69,13 @@ export class Database {
       serverNode: this.server,
       UID: this.username,
       PWD: this.password,
-      currentSchema: this.database,
       communicationTimeout: this.timeout,
     };
+
+    // Adicionar currentSchema apenas se o database foi fornecido e não estiver vazio
+    if (this.database && this.database.trim() !== "") {
+      conn_params.currentSchema = this.database;
+    }
 
     const hanaFactory = {
       create: (): Promise<HanaClient> => {
@@ -115,196 +103,74 @@ export class Database {
       min: 5,
       ...this.poolSettings,
     });
+
+    // Testar a conexão adquirindo um cliente do pool
+    // Se a conexão falhar, o pool já rejeitará na criação do cliente
+    const client = await this.pool.acquire();
+    this.pool.release(client);
   }
 
   /**
-   * Configura a conexão com Microsoft SQL Server
-   * @private
-   */
-  private async setConnDbSql(): Promise<void> {
-    let server = this.server;
-    let port: number | undefined = undefined;
-
-    if (this.server.includes(":")) {
-      const serverSplitted = this.server.split(":");
-      server = serverSplitted[0];
-      port = +serverSplitted[1];
-    }
-
-    await new Promise<void>((resolve, reject) => {
-      this.mssql = new mssql.ConnectionPool(
-        {
-          server: server,
-          user: this.username,
-          password: this.password,
-          database: this.database,
-          port: port,
-          connectionTimeout: this.timeout,
-          requestTimeout: this.timeout,
-          options: {
-            enableArithAbort: false,
-          },
-        },
-        (err: Error | null) => {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
-
-    if (!this.mssql) {
-      throw new Error("Falha ao criar pool de conexão MSSQL");
-    }
-
-    this.mssqlConnect = this.mssql.connect();
-  }
-
-  /**
-   * Configura a conexão com PostgreSQL
-   * @private
-   */
-  private async setConnDbPostgres(): Promise<void> {
-    let server = this.server;
-    let port: number | undefined = undefined;
-
-    if (this.server.includes(":")) {
-      const serverSplitted = this.server.split(":");
-      server = serverSplitted[0];
-      port = +serverSplitted[1];
-    }
-
-    this.pgPool = new PgPool({
-      host: server,
-      user: this.username,
-      password: this.password,
-      database: this.database,
-      port: port,
-      idleTimeoutMillis: this.timeout,
-      connectionTimeoutMillis: this.timeout,
-      ...this.poolSettings,
-    });
-  }
-
-  /**
-   * Executa uma query SQL diretamente no banco de dados
-   * @param query Query SQL a ser executada (pode usar {db} como placeholder para o nome do banco)
+   * Executa uma query SQL diretamente no banco de dados HANA
+   * @param query Query SQL a ser executada (pode usar {db} como placeholder para o nome do schema)
    * @param parameters Array de parâmetros para a query (padrão: [])
    * @returns Promise com o resultado da query
-   * @throws {Error} Se houver erro na execução da query
+   * @throws {Error} Se houver erro na execução da query ou se não houver conexão ativa
    */
-  async executeQuery(query: string, parameters: unknown[] = []): Promise<QueryResult> {
-    if (!this.isHana && !this.isPostgres && !this.mssql) {
+  async query(query: string, parameters: unknown[] = []): Promise<QueryResult> {
+    if (!this.pool) {
       throw new Error("Não há conexão ativa com o banco de dados. Execute connect() primeiro.");
     }
 
-    const q = query.replace(/{db}/g, this.database);
+    // Substituir placeholder {db} pelo nome do schema se fornecido
+    const q = this.database ? query.replace(/{db}/g, this.database) : query;
 
-    if (this.isHana) {
-      if (!this.pool) {
-        throw new Error("Pool HANA não inicializado");
-      }
-
-      return new Promise<QueryResult>((resolve, reject) => {
-        this.pool!
-          .acquire()
-          .then((client) => {
-            client.exec(q, parameters, (err, r) => {
-              this.pool!.release(client);
-              if (err) {
-                reject(err);
-              } else {
-                resolve(r as QueryResult);
-              }
-            });
-          })
-          .catch(reject);
-      });
-    }
-
-    if (this.isPostgres) {
-      if (!this.pgPool) {
-        throw new Error("Pool PostgreSQL não inicializado");
-      }
-
-      const client = await this.pgPool.connect();
-      try {
-        const result = await client.query(q, parameters);
-        return result.rows;
-      } finally {
-        client.release();
-      }
-    }
-
-    // MSSQL
-    if (!this.mssql || !this.mssqlConnect) {
-      throw new Error("Conexão MSSQL não inicializada");
-    }
-
-    let finalQuery = q;
-    if (parameters.length > 0) {
-      let i = 0;
-      while (/\?/.test(finalQuery)) {
-        finalQuery = finalQuery.replace("?", `@mssqlboundparm${i++}`);
-      }
-    }
-
-    await this.mssqlConnect;
-
-    if (parameters.length > 0) {
-      const req = new mssql.Request(this.mssql);
-      for (let i = 0; i < parameters.length; i++) {
-        req.input(`mssqlboundparm${i}`, parameters[i]);
-      }
-      const result = await req.query(finalQuery);
-      return result.recordset;
-    }
-
-    const result = await this.mssql.query(finalQuery);
-    return result.recordset;
+    return new Promise<QueryResult>((resolve, reject) => {
+      this.pool!
+        .acquire()
+        .then((client) => {
+          client.exec(q, parameters, (err, r) => {
+            this.pool!.release(client);
+            if (err) {
+              reject(err);
+            } else {
+              resolve(r as QueryResult);
+            }
+          });
+        })
+        .catch(reject);
+    });
   }
 
   /**
-   * Executa uma stored procedure no banco de dados
+   * Executa uma stored procedure no banco de dados HANA
    * @param name Nome da stored procedure
    * @param parameters Array de parâmetros para a procedure (padrão: [])
    * @returns Promise com o resultado da execução da procedure
-   * @throws {Error} Se houver erro na execução da procedure
+   * @throws {Error} Se houver erro na execução da procedure ou se não houver conexão ativa
    */
-  async executeProcedure(name: string, parameters: unknown[] = []): Promise<QueryResult> {
-    const placeholders = parameters.map(() => "?").join(",");
-    let query: string;
-
-    if (this.isHana) {
-      query = `CALL {db}."${name}"(${placeholders})`;
-    } else if (this.isPostgres) {
-      query = `SELECT * FROM ${name}(${placeholders})`;
-    } else {
-      query = `EXEC "${name}" ${placeholders}`;
+  async procedure(name: string, parameters: unknown[] = []): Promise<QueryResult> {
+    if (!this.pool) {
+      throw new Error("Não há conexão ativa com o banco de dados. Execute connect() primeiro.");
     }
 
-    return this.executeQuery(query, parameters);
+    const placeholders = parameters.map(() => "?").join(",");
+    const schemaPrefix = this.database ? `{db}.` : "";
+    const query = `CALL ${schemaPrefix}"${name}"(${placeholders})`;
+
+    return this.query(query, parameters);
   }
 
   /**
-   * Desconecta do banco de dados e fecha todas as conexões
+   * Desconecta do banco de dados HANA e fecha todas as conexões do pool
    * @throws {Error} Se houver erro ao desconectar
    */
   async disconnect(): Promise<void> {
     try {
-      if (this.isHana) {
-        if (this.pool) {
-          await this.pool.drain();
-          await this.pool.clear();
-        }
-      } else if (this.isPostgres) {
-        if (this.pgPool) {
-          await this.pgPool.end();
-        }
-      } else {
-        if (this.mssqlConnect) {
-          await this.mssqlConnect;
-          await this.mssql!.close();
-        }
+      if (this.pool) {
+        await this.pool.drain();
+        await this.pool.clear();
+        this.pool = undefined;
       }
     } catch (error) {
       throw new Error(
@@ -313,4 +179,3 @@ export class Database {
     }
   }
 }
-

@@ -1,6 +1,6 @@
 # sap-database
 
-Biblioteca reutilizável em TypeScript para conexão com bancos de dados SAP (HANA, MSSQL, PostgreSQL).
+Biblioteca reutilizável em TypeScript para conexão com banco de dados SAP HANA.
 
 ## Instalação
 
@@ -15,8 +15,6 @@ npm install sap-database
 Esta biblioteca utiliza as seguintes dependências de runtime (instaladas automaticamente):
 
 - `@sap/hana-client` - Para conexão com SAP HANA
-- `mssql` - Para conexão com Microsoft SQL Server
-- `pg` - Para conexão com PostgreSQL
 - `generic-pool` - Para gerenciamento de pool de conexões
 
 Todas essas dependências são instaladas automaticamente quando você executa `npm install sap-database`.
@@ -26,7 +24,7 @@ Todas essas dependências são instaladas automaticamente quando você executa `
 ### Importação
 
 ```typescript
-import { Database, DatabaseType } from 'sap-database';
+import { Database } from 'sap-database';
 ```
 
 ### Exemplo Básico
@@ -34,11 +32,10 @@ import { Database, DatabaseType } from 'sap-database';
 ```typescript
 // Criar instância da Database com os parâmetros de conexão
 const db = new Database({
-  server: 'localhost:1433',
-  database: 'meu_banco',
-  username: 'usuario',
+  server: 'hana-server:30015',
+  database: 'MEU_SCHEMA', // Opcional - schema padrão
+  username: 'SYSTEM',
   password: 'senha',
-  databaseType: DatabaseType.MSSQL,
   timeout: 600000, // opcional, padrão: 600000ms
   poolSettings: { // opcional
     max: 10,
@@ -50,26 +47,16 @@ const db = new Database({
 await db.connect();
 
 // Executar uma query
-const resultados = await db.executeQuery(
-  'SELECT * FROM usuarios WHERE idade > ?',
-  [18]
+const resultados = await db.query(
+  'SELECT * FROM "MEU_SCHEMA"."TABELA" WHERE ID = ?',
+  [1]
 );
 
 // Executar uma stored procedure
-const resultadoProc = await db.executeProcedure('sp_buscar_usuario', [123]);
+const resultadoProc = await db.procedure('SP_BUSCAR_USUARIO', [123]);
 
 // Desconectar
 await db.disconnect();
-```
-
-### Tipos de Banco de Dados Suportados
-
-```typescript
-enum DatabaseType {
-  HANA = "HANA",
-  MSSQL = "MSSQL",
-  POSTGRES = "POSTGRES"
-}
 ```
 
 ### Construtor
@@ -79,11 +66,10 @@ enum DatabaseType {
 Cria uma nova instância da classe Database com os parâmetros de conexão.
 
 **Parâmetros:**
-- `server`: Endereço do servidor (pode incluir porta no formato `host:port`)
-- `database`: Nome do banco de dados
+- `server`: Endereço do servidor HANA (pode incluir porta no formato `host:port`)
+- `database`: Nome do schema (opcional)
 - `username`: Nome de usuário
 - `password`: Senha do usuário
-- `databaseType`: Tipo de banco de dados (`DatabaseType` ou string)
 - `timeout`: Timeout em milissegundos (opcional, padrão: 600000)
 - `poolSettings`: Configurações adicionais do pool de conexões (opcional)
 
@@ -91,21 +77,25 @@ Cria uma nova instância da classe Database com os parâmetros de conexão.
 
 #### `connect(): Promise<void>`
 
-Conecta ao banco de dados usando os parâmetros fornecidos no construtor.
+Conecta ao banco de dados SAP HANA usando os parâmetros fornecidos no construtor.
 
-#### `executeQuery(query: string, parameters?: unknown[]): Promise<QueryResult>`
+**Lança:** `Error` se houver erro na conexão
 
-Executa uma query SQL diretamente no banco de dados.
+#### `query(query: string, parameters?: unknown[]): Promise<QueryResult>`
+
+Executa uma query SQL diretamente no banco de dados HANA.
 
 **Parâmetros:**
-- `query`: Query SQL a ser executada (pode usar `{db}` como placeholder para o nome do banco)
+- `query`: Query SQL a ser executada (pode usar `{db}` como placeholder para o nome do schema)
 - `parameters`: Array de parâmetros para a query (opcional, padrão: `[]`)
 
 **Retorna:** Promise com o resultado da query
 
-#### `executeProcedure(name: string, parameters?: unknown[]): Promise<QueryResult>`
+**Lança:** `Error` se houver erro na execução da query ou se não houver conexão ativa
 
-Executa uma stored procedure no banco de dados.
+#### `procedure(name: string, parameters?: unknown[]): Promise<QueryResult>`
+
+Executa uma stored procedure no banco de dados HANA.
 
 **Parâmetros:**
 - `name`: Nome da stored procedure
@@ -113,48 +103,84 @@ Executa uma stored procedure no banco de dados.
 
 **Retorna:** Promise com o resultado da execução da procedure
 
+**Lança:** `Error` se houver erro na execução da procedure ou se não houver conexão ativa
+
 #### `disconnect(): Promise<void>`
 
-Desconecta do banco de dados e fecha todas as conexões.
+Desconecta do banco de dados HANA e fecha todas as conexões do pool.
 
-### Exemplos por Tipo de Banco
+**Lança:** `Error` se houver erro ao desconectar
 
-#### SAP HANA
+### Exemplos
+
+#### Exemplo com Schema
 
 ```typescript
 const db = new Database({
-  server: 'hana-server:30015',
-  database: 'MEU_SCHEMA',
+  server: '192.168.1.100:30015',
+  database: 'SBO_CMM',
   username: 'SYSTEM',
-  password: 'senha',
-  databaseType: DatabaseType.HANA
+  password: 'senha123',
 });
+
 await db.connect();
+
+// Usar placeholder {db} na query
+const resultados = await db.query('SELECT * FROM {db}."TABELA"');
+
+await db.disconnect();
 ```
 
-#### Microsoft SQL Server
+#### Exemplo sem Schema Padrão
 
 ```typescript
 const db = new Database({
-  server: 'localhost:1433',
-  database: 'meu_banco',
-  username: 'sa',
-  password: 'senha',
-  databaseType: DatabaseType.MSSQL
+  server: '192.168.1.100:30015',
+  username: 'SYSTEM',
+  password: 'senha123',
 });
+
 await db.connect();
+
+// Especificar schema completo na query
+const resultados = await db.query('SELECT * FROM "MEU_SCHEMA"."TABELA"');
+
+await db.disconnect();
 ```
 
-#### PostgreSQL
+#### Exemplo com Stored Procedure
 
 ```typescript
 const db = new Database({
-  server: 'localhost:5432',
-  database: 'meu_banco',
-  username: 'postgres',
-  password: 'senha',
-  databaseType: DatabaseType.POSTGRES
+  server: '192.168.1.100:30015',
+  database: 'SBO_CMM',
+  username: 'SYSTEM',
+  password: 'senha123',
 });
+
+await db.connect();
+
+// Executar stored procedure
+const resultado = await db.procedure('SP_BUSCAR_CLIENTE', [123, 'ATIVO']);
+
+await db.disconnect();
+```
+
+#### Exemplo com Pool Customizado
+
+```typescript
+const db = new Database({
+  server: '192.168.1.100:30015',
+  database: 'SBO_CMM',
+  username: 'SYSTEM',
+  password: 'senha123',
+  timeout: 300000,
+  poolSettings: {
+    max: 20,
+    min: 10,
+  },
+});
+
 await db.connect();
 ```
 

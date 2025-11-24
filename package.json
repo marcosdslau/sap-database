@@ -1,7 +1,7 @@
 {
   "name": "sap-database",
-  "version": "1.0.2",
-  "description": "Biblioteca reutilizável para conexão com bancos de dados SAP (HANA, MSSQL, PostgreSQL)",
+  "version": "1.1.0",
+  "description": "Biblioteca reutilizável para conexão com banco de dados SAP HANA",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -12,8 +12,7 @@
   "keywords": [
     "sap",
     "hana",
-    "mssql",
-    "postgresql",
+    "sap-hana",
     "database",
     "connection"
   ],
@@ -21,14 +20,10 @@
   "license": "ISC",
   "dependencies": {
     "@sap/hana-client": "^2.26.25",
-    "generic-pool": "^3.9.0",
-    "mssql": "^10.0.4",
-    "pg": "^8.16.3"
+    "generic-pool": "^3.9.0"
   },
   "devDependencies": {
-    "@types/mssql": "^9.1.8",
     "@types/node": "^20.19.25",
-    "@types/pg": "^8.10.9",
     "typescript": "^5.9.3"
   },
   "files": [

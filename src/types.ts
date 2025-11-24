@@ -1,15 +1,4 @@
-import { Pool as PgPool } from "pg";
-import { ConnectionPool } from "mssql";
 import { Pool } from "generic-pool";
-
-/**
- * Tipos de banco de dados suportados
- */
-export enum DatabaseType {
-  HANA = "HANA",
-  MSSQL = "MSSQL",
-  POSTGRES = "POSTGRES",
-}
 
 /**
  * Configurações de pool de conexões
@@ -21,19 +10,17 @@ export interface PoolSettings {
 }
 
 /**
- * Parâmetros de conexão com o banco de dados
+ * Parâmetros de conexão com o banco de dados SAP HANA
  */
 export interface DatabaseConnectionParams {
   /** Endereço do servidor (pode incluir porta no formato host:port) */
   server: string;
-  /** Nome do banco de dados */
-  database: string;
+  /** Nome do schema (opcional) */
+  database?: string;
   /** Nome de usuário */
   username: string;
   /** Senha do usuário */
   password: string;
-  /** Tipo de banco de dados */
-  databaseType: DatabaseType | string;
   /** Timeout em milissegundos (padrão: 600000) */
   timeout?: number;
   /** Configurações adicionais do pool de conexões */
@@ -56,7 +43,7 @@ export interface HanaConnectionParams {
   serverNode: string;
   UID: string;
   PWD: string;
-  currentSchema: string;
+  currentSchema?: string;
   communicationTimeout: number;
 }
 
@@ -64,4 +51,3 @@ export interface HanaConnectionParams {
  * Resultado de uma query
  */
 export type QueryResult = unknown[] | Record<string, unknown>[];
-

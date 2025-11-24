@@ -2,45 +2,46 @@
  * Exemplo de uso da biblioteca sap-database
  * 
  * Este arquivo demonstra como usar a classe Database para conectar
- * e executar queries em diferentes tipos de bancos de dados SAP.
+ * e executar queries no banco de dados SAP HANA.
  */
 
-import { Database, DatabaseType } from './src/index';
+import { Database } from './src/index';
 
-async function exemplo() {
-  // Exemplo 1: Criar instância com parâmetros de conexão
+async function exemploBasico() {
   const db = new Database({
-    server: 'localhost:1433',
-    database: 'meu_banco',
-    username: 'sa',
+    server: 'localhost:30015',
+    database: 'MEU_SCHEMA',
+    username: 'SYSTEM',
     password: 'senha123',
-    databaseType: DatabaseType.MSSQL,
-    timeout: 600000,
   });
 
   try {
     // Conectar ao banco de dados
-    console.log('Conectando ao banco de dados...');
+    console.log('Conectando ao banco de dados HANA...');
     await db.connect();
+    console.log('Conectado com sucesso!');
 
-    // Exemplo 2: Executar uma query simples
-    console.log('Executando query...');
-    const usuarios = await db.executeQuery(
-      'SELECT * FROM usuarios WHERE idade > ?',
-      [18]
-    );
-    console.log('Usuários encontrados:', usuarios);
+    // Executar uma query simples de teste (sempre funciona no HANA)
+    console.log('Executando query de teste...');
+    const resultadoTeste = await db.query('SELECT CURRENT_SCHEMA FROM DUMMY');
+    console.log('Schema atual:', resultadoTeste);
 
-    // Exemplo 3: Executar uma stored procedure
-    console.log('Executando stored procedure...');
-    const resultadoProc = await db.executeProcedure('sp_buscar_usuario', [123]);
-    console.log('Resultado da procedure:', resultadoProc);
+    // Executar query com parâmetros
+    console.log('Executando query com parâmetros...');
+    const resultadoParam = await db.query('SELECT ? AS valor FROM DUMMY', [123]);
+    console.log('Resultado com parâmetro:', resultadoParam);
 
-    // Exemplo 4: Usar placeholder {db} na query
-    const tabelas = await db.executeQuery('SELECT * FROM {db}.sys.tables');
-    console.log('Tabelas do banco:', tabelas);
+    // Usar placeholder {db} na query
+    console.log('Executando query com placeholder {db}...');
+    const tabelas = await db.query('SELECT CURRENT_SCHEMA FROM DUMMY WHERE CURRENT_SCHEMA = ?', ['MEU_SCHEMA']);
+    console.log('Resultado com placeholder:', tabelas);
 
-    // Exemplo 5: Desconectar
+    // Exemplo de stored procedure (comentado pois pode não existir)
+    // console.log('Executando stored procedure...');
+    // const resultadoProc = await db.procedure('SP_EXEMPLO', [123]);
+    // console.log('Resultado da procedure:', resultadoProc);
+
+    // Desconectar
     console.log('Desconectando...');
     await db.disconnect();
     console.log('Desconectado com sucesso!');
@@ -51,64 +52,57 @@ async function exemplo() {
   }
 }
 
-// Exemplo com SAP HANA
-async function exemploHana() {
+async function exemploSemSchema() {
   const db = new Database({
-    server: 'hana-server:30015',
-    database: 'MEU_SCHEMA',
+    server: 'localhost:30015',
     username: 'SYSTEM',
     password: 'senha123',
-    databaseType: DatabaseType.HANA,
   });
 
   try {
     await db.connect();
 
-    const resultados = await db.executeQuery(
-      'SELECT * FROM "MEU_SCHEMA"."TABELA" WHERE ID = ?',
-      [1]
+    // Especificar schema completo na query quando não há schema padrão
+    const resultados = await db.query(
+      'SELECT CURRENT_SCHEMA FROM DUMMY'
     );
 
-    console.log('Resultados HANA:', resultados);
+    console.log('Resultados sem schema padrão:', resultados);
     await db.disconnect();
   } catch (error) {
-    console.error('Erro HANA:', error);
+    console.error('Erro:', error);
     await db.disconnect().catch(() => {});
   }
 }
 
-// Exemplo com PostgreSQL
-async function exemploPostgres() {
+async function exemploComPoolCustomizado() {
   const db = new Database({
-    server: 'localhost:5432',
-    database: 'meu_banco',
-    username: 'postgres',
+    server: 'localhost:30015',
+    database: 'MEU_SCHEMA',
+    username: 'SYSTEM',
     password: 'senha123',
-    databaseType: DatabaseType.POSTGRES,
+    timeout: 300000,
     poolSettings: {
       max: 20,
-      min: 5,
+      min: 10,
     },
   });
 
   try {
     await db.connect();
+    console.log('Conectado com pool customizado');
 
-    const resultados = await db.executeQuery(
-      'SELECT * FROM usuarios WHERE email = $1',
-      ['usuario@example.com']
-    );
+    const resultados = await db.query('SELECT CURRENT_SCHEMA FROM DUMMY');
+    console.log('Schema atual:', resultados);
 
-    console.log('Resultados PostgreSQL:', resultados);
     await db.disconnect();
   } catch (error) {
-    console.error('Erro PostgreSQL:', error);
+    console.error('Erro:', error);
     await db.disconnect().catch(() => {});
   }
 }
 
 // Descomente para executar os exemplos:
-// exemplo();
-// exemploHana();
-// exemploPostgres();
-
+// exemploBasico();
+// exemploSemSchema();
+// exemploComPoolCustomizado();
