@@ -1,5 +1,5 @@
 /**
- * Exemplo de uso da biblioteca sap-database
+ * Exemplo de uso da biblioteca sap-hanadatabase
  * 
  * Este arquivo demonstra como usar a classe Database para conectar
  * e executar queries no banco de dados SAP HANA.

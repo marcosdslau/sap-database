@@ -1,14 +1,14 @@
-# sap-database
+# sap-hanadatabase
 
 Biblioteca reutilizável em TypeScript para conexão com banco de dados SAP HANA.
 
 ## Instalação
 
 ```bash
-npm install sap-database
+npm install sap-hanadatabase
 ```
 
-**Nota:** As dependências de runtime são instaladas automaticamente quando você instala `sap-database`. Não é necessário instalá-las manualmente!
+**Nota:** As dependências de runtime são instaladas automaticamente quando você instala `sap-hanadatabase`. Não é necessário instalá-las manualmente!
 
 ## Dependências
 
@@ -17,14 +17,14 @@ Esta biblioteca utiliza as seguintes dependências de runtime (instaladas automa
 - `@sap/hana-client` - Para conexão com SAP HANA
 - `generic-pool` - Para gerenciamento de pool de conexões
 
-Todas essas dependências são instaladas automaticamente quando você executa `npm install sap-database`.
+Todas essas dependências são instaladas automaticamente quando você executa `npm install sap-hanadatabase`.
 
 ## Uso
 
 ### Importação
 
 ```typescript
-import { Database } from 'sap-database';
+import { Database } from 'sap-hanadatabase';
 ```
 
 ### Exemplo Básico
@@ -195,7 +195,7 @@ npm run build
 ### Estrutura do Projeto
 
 ```
-sap-database/
+sap-hanadatabase/
 ├── src/
 │   ├── Database.ts      # Classe principal Database
 │   ├── types.ts         # Tipos e interfaces TypeScript

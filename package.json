@@ -1,23 +1,23 @@
 {
-  "name": "sap-database",
-  "version": "1.1.0",
-  "description": "Biblioteca reutilizável para conexão com banco de dados SAP HANA",
+  "name": "sap-hanadatabase",
+  "version": "1.0.1",
+  "description": "Client TypeScript/Node para conexão com SAP HANA Database",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "sap",
-    "hana",
     "sap-hana",
+    "hana",
     "database",
-    "connection"
+    "node",
+    "typescript"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@sap/hana-client": "^2.26.25",
     "generic-pool": "^3.9.0"
@@ -27,7 +27,6 @@
     "typescript": "^5.9.3"
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ]
 }
