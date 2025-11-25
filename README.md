@@ -184,27 +184,6 @@ const db = new Database({
 await db.connect();
 ```
 
-## Desenvolvimento
-
-### Build
-
-```bash
-npm run build
-```
-
-### Estrutura do Projeto
-
-```
-sap-hanadatabase/
-├── src/
-│   ├── Database.ts      # Classe principal Database
-│   ├── types.ts         # Tipos e interfaces TypeScript
-│   └── index.ts         # Arquivo de entrada (exports)
-├── dist/                # Arquivos compilados (gerado após build)
-├── package.json
-├── tsconfig.json
-└── README.md
-```
 
 ## Licença
 

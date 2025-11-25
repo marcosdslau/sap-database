@@ -1,6 +1,6 @@
 {
   "name": "sap-hanadatabase",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Client TypeScript/Node para conexão com SAP HANA Database",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
